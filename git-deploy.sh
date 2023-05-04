@@ -1,38 +1,33 @@
 #!/bin/bash
 
-empty=""
+read -rp "Please enter the directory to push (eg: projects/git-init-deploy or ~/projects/git-init-deploy): " projectDirectory
 
-read -p "Please enter the directory to push (eg: projects/git-init-deploy or ~/projects/git-init-deploy): " projectDirectory
-
-if [[ "$projectDirectory" = "$empty" ]]; then
+if [[ -z "$projectDirectory" ]]; then
 	echo "No project directory provided! How am I supposed to know what you want to push??"
-	exit
+	exit 1
 fi
 
-read -p "Please enter a repository name (eg: jason-allen-oneal/git-init-deploy): " repository
+read -rp "Please enter a repository name (eg: jason-allen-oneal/git-init-deploy): " repository
 
 if [[ "$repository" == *"/"* ]]; then
-	IFS='/'
-	read -ra reparray <<< "$repository"
+	IFS='/' read -ra reparray <<< "$repository"
 fi
 
-read -p "Public or private? " type
-if [[ "$type" = "$empty" ]]; then
+read -rp "Public or private? " type
+if [[ -z "$type" ]]; then
 	type="public"
-else
-	if [[ "$type" != "public" && "$type" != "private" ]]; then
-		type="public"
-	fi
+elif [[ "$type" != "public" && "$type" != "private" ]]; then
+	type="public"
 fi
 
 user="${reparray[0]}"
 rep="${reparray[1]}"
-cd "$projectDirectory"
+cd "$projectDirectory" || exit 1
 
-read -p "In what language or framework is the project written? " lang
+read -rp "In what language or framework is the project written? " lang
 lang="${lang,,}"
 
-if [[ "$lang" != "$empty" ]]; then
+if [[ -n "$lang" ]]; then
 	url="https://raw.githubusercontent.com/jason-allen-oneal/gitignore/main/$lang.gitignore"
 	if wget -q --method=HEAD "$url"; then
 		wget "$url"
@@ -41,22 +36,22 @@ if [[ "$lang" != "$empty" ]]; then
 fi
 
 if ! command -v gh &> /dev/null; then
-	curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-	apt update
-	apt install gh
+	curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+	sudo apt update
+	sudo apt install gh
 	gh auth login
 fi
 
-if [[ "$repository" = "$empty" ]]; then
+if [[ -z "$repository" ]]; then
 	gh repo create
 else
-	gh repo create "$repository" "--$type"
+	gh repo create "$repository" --"$type"
 fi
 
 git init
 git add .
-git commit -m "initial commit"
+git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/"$user"/"$rep".git
+git remote add origin "https://github.com/$user/$rep.git"
 git push -u origin main
